@@ -1,6 +1,9 @@
 name: Build OrangeFox Recovery for vivo X300 Pro
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
