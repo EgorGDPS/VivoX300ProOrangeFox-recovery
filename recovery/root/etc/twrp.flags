@@ -1,0 +1,24 @@
+# TWRP Flags for vivo X300 Pro (PD2502 / MT6993)
+
+# Storage
+/usb_otg         vfat        /dev/block/sdd1         /dev/block/sdd       flags=display="USB-OTG";storage;wipeingui;removable
+
+# Firmware & Core Partitions for Backup/Flash
+/boot            emmc        /dev/block/by-name/boot                      flags=backup=1;display="Kernel (Boot)";slotselect;flashimg=1
+/init_boot       emmc        /dev/block/by-name/init_boot                 flags=backup=1;display="Init Boot (Generic Ramdisk)";slotselect;flashimg=1
+/vendor_boot     emmc        /dev/block/by-name/vendor_boot               flags=backup=1;display="Vendor Boot (Recovery)";slotselect;flashimg=1
+/dtbo            emmc        /dev/block/by-name/dtbo                      flags=backup=1;display="DTBO";flashimg=1
+/vbmeta          emmc        /dev/block/by-name/vbmeta                    flags=backup=1;display="VBMeta";flashimg=1
+/vbmeta_system   emmc        /dev/block/by-name/vbmeta_system             flags=backup=1;display="VBMeta System";slotselect;flashimg=1
+/vbmeta_vendor   emmc        /dev/block/by-name/vbmeta_vendor             flags=backup=1;display="VBMeta Vendor";slotselect;flashimg=1
+/super           emmc        /dev/block/by-name/super                     flags=backup=1;display="Super Partition";flashimg=1
+
+# NVRAM / Sensitive calibration partitions
+/nvram           emmc        /dev/block/by-name/nvram                     flags=backup=1;display="NVRAM";subpartitionof=/nvdata
+/nvdata          ext4        /dev/block/by-name/nvdata                    flags=backup=1;display="NVDATA"
+/nvcfg           ext4        /dev/block/by-name/nvcfg                     flags=backup=1;subpartitionof=/nvdata
+/persist         ext4        /dev/block/by-name/persist                   flags=backup=1;display="Persist"
+/proinfo         emmc        /dev/block/by-name/proinfo                   flags=backup=1;display="Proinfo"
+/protect1        ext4        /dev/block/by-name/protect1                  flags=backup=1;subpartitionof=/protect2
+/protect2        ext4        /dev/block/by-name/protect2                  flags=backup=1;display="Protect (IMEI)"
+/secp            emmc        /dev/block/by-name/seccfg                    flags=backup=1;display="SECCFG"

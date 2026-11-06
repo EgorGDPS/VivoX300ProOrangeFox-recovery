@@ -1,0 +1,34 @@
+# Android fstab file for TWRP / OrangeFox
+# <src>                                      <mnt_point>  <type>  <mnt_flags and options>  <fs_mgr_flags>
+
+# Logical Dynamic Partitions (Super)
+system          /system          erofs    ro    wait,slotselect,logical,first_stage_mount
+system          /system          ext4     ro    wait,slotselect,logical,first_stage_mount
+system_ext      /system_ext      erofs    ro    wait,slotselect,logical,first_stage_mount
+system_ext      /system_ext      ext4     ro    wait,slotselect,logical,first_stage_mount
+vendor          /vendor          erofs    ro    wait,slotselect,logical,first_stage_mount
+vendor          /vendor          ext4     ro    wait,slotselect,logical,first_stage_mount
+product         /product         erofs    ro    wait,slotselect,logical,first_stage_mount
+product         /product         ext4     ro    wait,slotselect,logical,first_stage_mount
+odm             /odm             erofs    ro    wait,slotselect,logical,first_stage_mount
+odm             /odm             ext4     ro    wait,slotselect,logical,first_stage_mount
+vendor_dlkm     /vendor_dlkm     erofs    ro    wait,slotselect,logical,first_stage_mount
+vendor_dlkm     /vendor_dlkm     ext4     ro    wait,slotselect,logical,first_stage_mount
+odm_dlkm        /odm_dlkm        erofs    ro    wait,slotselect,logical,first_stage_mount
+odm_dlkm        /odm_dlkm        ext4     ro    wait,slotselect,logical,first_stage_mount
+system_dlkm     /system_dlkm     erofs    ro    wait,slotselect,logical,first_stage_mount
+system_dlkm     /system_dlkm     ext4     ro    wait,slotselect,logical,first_stage_mount
+
+# Metadata & Userdata
+/dev/block/by-name/metadata     /metadata     f2fs    noatime,nosuid,nodev,discard                                wait,check,formattable,first_stage_mount
+/dev/block/by-name/userdata     /data         f2fs    noatime,nosuid,nodev,discard,noflush_merge,fsync_mode=nobarrier,reserve_root=134217,resgid=1065,inlinecrypt wait,check,formattable,quota,latemount,resize,reservedsize=128m,checkpoint=fs,fileencryption=aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized,keydirectory=/metadata/vold/metadata_encryption,fsverity
+
+# Core Boot / Firmware Partitions
+/dev/block/by-name/boot         /boot         emmc    defaults    first_stage_mount,nofail,slotselect
+/dev/block/by-name/init_boot    /init_boot    emmc    defaults    first_stage_mount,nofail,slotselect
+/dev/block/by-name/vendor_boot  /vendor_boot  emmc    defaults    first_stage_mount,nofail,slotselect
+/dev/block/by-name/dtbo         /dtbo         emmc    defaults    defaults
+/dev/block/by-name/misc         /misc         emmc    defaults    defaults
+/dev/block/by-name/vbmeta       /vbmeta       emmc    defaults    defaults
+/dev/block/by-name/vbmeta_system /vbmeta_system emmc  defaults    first_stage_mount,nofail,slotselect
+/dev/block/by-name/vbmeta_vendor /vbmeta_vendor emmc  defaults    first_stage_mount,nofail,slotselect
