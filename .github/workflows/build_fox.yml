@@ -2,20 +2,10 @@ name: Build OrangeFox Recovery for vivo X300 Pro
 
 on:
   workflow_dispatch:
-    inputs:
-      MANIFEST_BRANCH:
-        description: 'OrangeFox Manifest Branch'
-        required: true
-        default: 'fox_16.0'
-        type: choice
-        options:
-          - fox_16.0
-          - fox_14.1
-          - fox_12.1
 
 jobs:
   build:
-    name: Build OrangeFox
+    name: Build OrangeFox (Android 16)
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout Device Tree
@@ -46,20 +36,14 @@ jobs:
           chmod a+rx ~/bin/repo
           echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Initialize OrangeFox Source Tree
+      - name: Initialize OrangeFox Source Tree (fox_16.0)
         run: |
           mkdir -p ~/OrangeFox
           cd ~/OrangeFox
           git config --global user.name "Builder"
           git config --global user.email "builder@github.com"
-          if [ "${{ github.event.inputs.MANIFEST_BRANCH }}" = "fox_16.0" ]; then
-            repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox_16.0 --depth=1
-            repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
-          else
-            git clone https://gitlab.com/OrangeFox/sync.git ~/fox_sync
-            cd ~/fox_sync
-            ./orangefox_sync.sh --branch $(echo "${{ github.event.inputs.MANIFEST_BRANCH }}" | sed 's/fox_//') --path ~/OrangeFox
-          fi
+          repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox_16.0 --depth=1
+          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
       - name: Setup vivo X300 Pro Device Tree
         run: |
