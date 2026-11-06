@@ -6,9 +6,10 @@ on:
       MANIFEST_BRANCH:
         description: 'OrangeFox Manifest Branch'
         required: true
-        default: 'fox_14.1'
+        default: 'fox_16.0'
         type: choice
         options:
+          - fox_16.0
           - fox_14.1
           - fox_12.1
 
@@ -51,8 +52,14 @@ jobs:
           cd ~/OrangeFox
           git config --global user.name "Builder"
           git config --global user.email "builder@github.com"
-          repo init -u https://gitlab.com/OrangeFox/manifest.git -b ${{ github.event.inputs.MANIFEST_BRANCH }} --depth=1
-          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+          if [ "${{ github.event.inputs.MANIFEST_BRANCH }}" = "fox_16.0" ]; then
+            repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox_16.0 --depth=1
+            repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+          else
+            git clone https://gitlab.com/OrangeFox/sync.git ~/fox_sync
+            cd ~/fox_sync
+            ./orangefox_sync.sh --branch $(echo "${{ github.event.inputs.MANIFEST_BRANCH }}" | sed 's/fox_//') --path ~/OrangeFox
+          fi
 
       - name: Setup vivo X300 Pro Device Tree
         run: |
@@ -64,9 +71,10 @@ jobs:
       - name: Compile OrangeFox Recovery
         run: |
           cd ~/OrangeFox
+          export FOX_BUILD_DEVICE="PD2502"
           source build/envsetup.sh
           source device/vivo/PD2502/vendorsetup.sh
-          lunch fox_PD2502-eng
+          lunch twrp_PD2502-eng || lunch twrp_PD2502-bp2a-eng || lunch fox_PD2502-eng
           mka recoveryimage -j$(nproc --all)
 
       - name: Upload Output Recovery Images
