@@ -58,7 +58,7 @@ jobs:
           export FOX_BUILD_DEVICE="PD2502"
           source build/envsetup.sh
           source device/vivo/PD2502/vendorsetup.sh
-          lunch twrp_PD2502-eng || lunch twrp_PD2502-bp2a-eng || lunch fox_PD2502-eng
+          lunch twrp_PD2502-bp2a-eng
           mka recoveryimage -j$(nproc --all)
 
       - name: Upload Output Recovery Images
