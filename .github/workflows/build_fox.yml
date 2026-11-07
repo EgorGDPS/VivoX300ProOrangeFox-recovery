@@ -18,6 +18,8 @@ jobs:
 
       - name: Free Disk Space & Setup Swap
         run: |
+          sudo swapoff -a || true
+          sudo rm -f /swapfile
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
