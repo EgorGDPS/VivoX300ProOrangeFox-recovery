@@ -6,7 +6,7 @@ DEVICE_PATH := device/vivo/PD2502
 
 # Architecture
 TARGET_ARCH := arm64
-TARGET_ARCH_VARIANT := armv8-2a
+TARGET_ARCH_VARIANT := armv9-a
 TARGET_CPU_ABI := arm64-v8a
 TARGET_CPU_ABI2 :=
 TARGET_CPU_VARIANT := generic
@@ -26,8 +26,9 @@ BOARD_KERNEL_BASE := 0x40078000
 BOARD_PAGE_SIZE := 4096
 
 BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 product.version=PD2502F_EX_A_16.0.4.3.W20 region_ver=W20 product.solution=MTK bootconfig
-BOARD_INCLUDE_DTB_IN_BOOTIMG := false
-BOARD_PREBUILT_DTB := $(DEVICE_PATH)/prebuilt/dtb
+BOARD_INCLUDE_DTB_IN_BOOTIMG := true
+BOARD_PREBUILT_DTBIMAGE_DIR := $(DEVICE_PATH)/prebuilt
+BOARD_PREBUILT_DTB := $(DEVICE_PATH)/prebuilt/dtb.img
 TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/kernel
 
 # Virtual A/B & Vendor Boot Recovery
@@ -72,6 +73,7 @@ TARGET_RECOVERY_DENSITY := 520
 TW_THEME := portrait_hdpi
 TW_EXTRA_LANGUAGES := true
 TW_DEFAULT_BRIGHTNESS := 1200
+TW_MAX_BRIGHTNESS := 4095
 TW_BRIGHTNESS_PATH := "/sys/class/leds/lcd-backlight/brightness"
 
 # OrangeFox Display Geometry & UI Tweaks
