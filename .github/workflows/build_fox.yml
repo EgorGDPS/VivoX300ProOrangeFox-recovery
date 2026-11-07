@@ -16,12 +16,17 @@ jobs:
         with:
           path: device_tree
 
-      - name: Free Disk Space (Fast)
+      - name: Free Disk Space & Setup Swap
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
           sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo fallocate -l 10G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=10240
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
 
       - name: Setup Build Environment & Dependencies
         run: |
@@ -64,10 +69,12 @@ jobs:
         run: |
           cd ~/OrangeFox
           export FOX_BUILD_DEVICE="PD2502"
+          export MALLOC_ARENA_MAX=1
+          export _JAVA_OPTIONS="-Xmx4g"
           source build/envsetup.sh
           source device/vivo/PD2502/vendorsetup.sh
           lunch twrp_PD2502-bp2a-eng
-          mka recoveryimage -j$(nproc --all)
+          mka recoveryimage -j4
 
       - name: Upload Output Recovery Images
         uses: actions/upload-artifact@v4
