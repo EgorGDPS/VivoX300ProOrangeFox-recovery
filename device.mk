@@ -19,7 +19,7 @@ PRODUCT_COPY_FILES += \
 # Recovery fstab and flags
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/recovery.fstab:$(TARGET_COPY_OUT_RECOVERY)/root/system/etc/recovery.fstab \
-    $(LOCAL_PATH)/recovery/root/etc/twrp.flags:$(TARGET_COPY_OUT_RECOVERY)/root/system/etc/twrp.flags
+    $(LOCAL_PATH)/recovery/root/system/etc/twrp.flags:$(TARGET_COPY_OUT_RECOVERY)/root/system/etc/twrp.flags
 
 # Helper prebuilts for Dual UFS and Touchpanel
 PRODUCT_COPY_FILES += \
@@ -28,4 +28,4 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/recovery/root/system/bin/vts_app_recovery:$(TARGET_COPY_OUT_RECOVERY)/root/system/bin/vts_app_recovery
 
 # Touchscreen firmware binaries
-PRODUCT_COPY_FILES += $(call find-copy-subdir-files,*,$(LOCAL_PATH)/recovery/root/vendor/firmware,$(TARGET_COPY_OUT_RECOVERY)/root/vendor/firmware)
+PRODUCT_COPY_FILES += $(call find-copy-subdir-files,*,$(LOCAL_PATH)/recovery/root/system/vendor/firmware,$(TARGET_COPY_OUT_RECOVERY)/root/system/vendor/firmware)

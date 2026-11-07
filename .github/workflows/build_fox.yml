@@ -102,6 +102,7 @@ jobs:
 
       - name: Upload Output Recovery Images
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: OrangeFox-vivo-x300pro-PD2502
           path: |
