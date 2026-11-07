@@ -2,6 +2,11 @@
 
 LOCAL_PATH := device/vivo/PD2502
 
+# Inherit from common AOSP 64-bit-only product configuration
+$(call inherit-product, $(SRC_TARGET_DIR)/product/base.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit_only.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota.mk)
+
 # Recovery init scripts
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/recovery/root/init.recovery.mt6993.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.mt6993.rc \
