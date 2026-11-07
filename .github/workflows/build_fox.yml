@@ -45,8 +45,13 @@ jobs:
           cd ~/OrangeFox
           git config --global user.name "Builder"
           git config --global user.email "builder@github.com"
+          git config --global http.postBuffer 1048576000
+          git config --global http.lowSpeedLimit 1000
+          git config --global http.lowSpeedTime 60
           repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox_16.0 --depth=1
-          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+          repo sync -c -j4 --no-clone-bundle --no-tags || \
+            (echo "Retrying sync with lower concurrency..." && sleep 5 && repo sync -c -j2 --no-clone-bundle --no-tags) || \
+            (echo "Final sync retry..." && sleep 5 && repo sync -c -j1 --no-clone-bundle --no-tags)
 
       - name: Setup vivo X300 Pro Device Tree
         run: |
