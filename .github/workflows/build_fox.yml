@@ -32,8 +32,8 @@ jobs:
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
-          sudo sysctl -w vm.swappiness=100
-          sudo sysctl -w vm.vfs_cache_pressure=50
+          sudo sysctl -w vm.swappiness=15
+          sudo sysctl -w vm.vfs_cache_pressure=100
           free -h
           df -h
 
@@ -74,11 +74,14 @@ jobs:
           rm -rf ~/OrangeFox/device/vivo/PD2502/.github
           rm -rf ~/OrangeFox/device/vivo/PD2502/.git
 
-      - name: Patch Soong / Blueprint Memory Limits
+      - name: Patch Soong / Blueprint Memory Limits & Prebuilts
         run: |
           cd ~/OrangeFox
-          find build/blueprint -name "bootstrap.go" -exec sed -i 's/env -i /env -i GOMEMLIMIT=12GiB GOGC=50 /g' {} + || true
-          find build/soong -name "soong.go" -exec sed -i 's/env -i /env -i GOMEMLIMIT=12GiB GOGC=50 /g' {} + || true
+          # Set Go memory limit on soong_build without aggressive GC thrashing
+          find build/blueprint -name "bootstrap.go" -exec sed -i 's/env -i /env -i GOMEMLIMIT=12GiB /g' {} + || true
+          find build/soong -name "soong.go" -exec sed -i 's/env -i /env -i GOMEMLIMIT=12GiB /g' {} + || true
+          # Allow 4KB prebuilt binaries (magiskboot) to bypass 16KB page-size verification
+          find external -name "Android.bp" -exec sed -i '/name: "magiskboot"/a \    ignore_max_page_size: true,' {} + || true
 
       - name: Compile OrangeFox Recovery
         run: |
@@ -87,11 +90,13 @@ jobs:
           export MALLOC_ARENA_MAX=1
           export _JAVA_OPTIONS="-Xmx4g"
           export GOMEMLIMIT=12GiB
-          export GOGC=50
+          export PRODUCT_CHECK_ELF_FILES=false
+          export PRODUCT_CHECK_PREBUILT_MAX_PAGE_SIZE=false
+          export TARGET_NO_CHECK_ELF_FILES=true
           source build/envsetup.sh
           source device/vivo/PD2502/vendorsetup.sh
           lunch twrp_PD2502-bp2a-eng
-          mka vendorbootimage recoveryimage -j4
+          mka vendorbootimage recoveryimage -j$(nproc)
 
       - name: Upload Output Recovery Images
         uses: actions/upload-artifact@v4

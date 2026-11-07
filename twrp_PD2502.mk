@@ -12,6 +12,9 @@ PRODUCT_MODEL := vivo X300 Pro
 PRODUCT_MANUFACTURER := vivo
 PRODUCT_RELEASE_NAME := vivo X300 Pro
 
+PRODUCT_CHECK_ELF_FILES := false
+PRODUCT_CHECK_PREBUILT_MAX_PAGE_SIZE := false
+
 DEVICE_PATH := device/vivo/PD2502
 
 # Inherit from device makefile
