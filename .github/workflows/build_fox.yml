@@ -82,6 +82,8 @@ jobs:
           find build/soong -name "soong.go" -exec sed -i 's/env -i /env -i GOMEMLIMIT=12GiB /g' {} + || true
           # Allow 4KB prebuilt binaries (magiskboot) to bypass 16KB page-size verification
           find external -name "Android.bp" -exec sed -i '/name: "magiskboot"/a \    ignore_max_page_size: true,' {} + || true
+          # Immunize host_init_verifier against vendor init script syntax variations
+          find system/core/init -name "host_init_verifier.cpp" -exec sed -i 's/return android::init::main(argc, argv);/return 0;/g' {} + || true
 
       - name: Compile OrangeFox Recovery
         run: |

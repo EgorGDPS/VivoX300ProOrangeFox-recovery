@@ -14,9 +14,7 @@ PRODUCT_CHECK_PREBUILT_MAX_PAGE_SIZE := false
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/recovery/root/init.recovery.mt6993.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.mt6993.rc \
     $(LOCAL_PATH)/recovery/root/init.recovery.platform.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.platform.rc \
-    $(LOCAL_PATH)/recovery/root/init.recovery.touch.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.touch.rc \
-    $(LOCAL_PATH)/recovery/root/init.recovery.svc.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.svc.rc \
-    $(LOCAL_PATH)/recovery/root/init.recovery.wifi.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.wifi.rc
+    $(LOCAL_PATH)/recovery/root/init.recovery.touch.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.touch.rc
 
 # Recovery fstab and flags
 PRODUCT_COPY_FILES += \
