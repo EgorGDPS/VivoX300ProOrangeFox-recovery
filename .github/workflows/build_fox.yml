@@ -22,13 +22,20 @@ jobs:
           sudo rm -f /swapfile
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/android
           sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/share/swift
           sudo rm -rf /opt/hostedtoolcache/CodeQL
-          sudo fallocate -l 10G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=10240
+          sudo docker system prune -a --volumes -f || true
+          sudo fallocate -l 16G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=16384
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
+          sudo sysctl -w vm.swappiness=100
+          sudo sysctl -w vm.vfs_cache_pressure=50
           free -h
+          df -h
 
       - name: Setup Build Environment & Dependencies
         run: |
@@ -67,12 +74,20 @@ jobs:
           rm -rf ~/OrangeFox/device/vivo/PD2502/.github
           rm -rf ~/OrangeFox/device/vivo/PD2502/.git
 
+      - name: Patch Soong / Blueprint Memory Limits
+        run: |
+          cd ~/OrangeFox
+          find build/blueprint -name "bootstrap.go" -exec sed -i 's/env -i /env -i GOMEMLIMIT=12GiB GOGC=50 /g' {} + || true
+          find build/soong -name "soong.go" -exec sed -i 's/env -i /env -i GOMEMLIMIT=12GiB GOGC=50 /g' {} + || true
+
       - name: Compile OrangeFox Recovery
         run: |
           cd ~/OrangeFox
           export FOX_BUILD_DEVICE="PD2502"
           export MALLOC_ARENA_MAX=1
           export _JAVA_OPTIONS="-Xmx4g"
+          export GOMEMLIMIT=12GiB
+          export GOGC=50
           source build/envsetup.sh
           source device/vivo/PD2502/vendorsetup.sh
           lunch twrp_PD2502-bp2a-eng
