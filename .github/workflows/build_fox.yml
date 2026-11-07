@@ -76,12 +76,13 @@ jobs:
           source build/envsetup.sh
           source device/vivo/PD2502/vendorsetup.sh
           lunch twrp_PD2502-bp2a-eng
-          mka recoveryimage -j4
+          mka vendorbootimage recoveryimage -j4
 
       - name: Upload Output Recovery Images
         uses: actions/upload-artifact@v4
         with:
           name: OrangeFox-vivo-x300pro-PD2502
           path: |
-            ~/OrangeFox/out/target/product/PD2502/vendor_boot.img
+            ~/OrangeFox/out/target/product/PD2502/*.img
             ~/OrangeFox/out/target/product/PD2502/OrangeFox-*.zip
+            ~/OrangeFox/out/target/product/PD2502/ramdisk-recovery.cpio
