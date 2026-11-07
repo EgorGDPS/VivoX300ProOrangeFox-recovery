@@ -46,11 +46,16 @@ jobs:
             libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc \
             yasm zip zlib1g-dev python3 python3-pip
 
-      - name: Install Google Repo Tool
+      - name: Install Google Repo Tool & Build Tools
         run: |
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+rx ~/bin/repo
+          cat << 'EOF' > ~/bin/rsync
+          #!/bin/bash
+          exec /usr/bin/rsync --force "$@"
+          EOF
+          chmod a+rx ~/bin/rsync
           echo "$HOME/bin" >> $GITHUB_PATH
 
       - name: Initialize OrangeFox Source Tree (fox_16.0)
@@ -84,6 +89,9 @@ jobs:
           find external -name "Android.bp" -exec sed -i '/name: "magiskboot"/a \    ignore_max_page_size: true,' {} + || true
           # Immunize host_init_verifier against vendor init script syntax variations
           find system/core/init -name "host_init_verifier.cpp" -exec sed -i 's/return android::init::main(argc, argv);/return 0;/g' {} + || true
+          # Patch core Makefile to force rsync overwrite on directory/symlink collisions
+          find build/make -name "Makefile" -exec sed -i 's/rsync -a --exclude=sdcard/rsync -a --force --exclude=sdcard/g' {} + || true
+          find build/make -name "Makefile" -exec sed -i 's/rsync -a /rsync -a --force /g' {} + || true
 
       - name: Compile OrangeFox Recovery
         run: |
