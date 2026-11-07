@@ -90,7 +90,7 @@ jobs:
           export MALLOC_ARENA_MAX=1
           export _JAVA_OPTIONS="-Xmx4g"
           export GOMEMLIMIT=12GiB
-          export PRODUCT_CHECK_ELF_FILES=false
+          export BUILD_BROKEN_PREBUILT_ELF_FILES=true
           export PRODUCT_CHECK_PREBUILT_MAX_PAGE_SIZE=false
           export TARGET_NO_CHECK_ELF_FILES=true
           source build/envsetup.sh

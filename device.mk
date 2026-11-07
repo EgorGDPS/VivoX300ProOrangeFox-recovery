@@ -7,8 +7,7 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/base.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/core_64_bit_only.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota.mk)
 
-# Disable ELF and page-size checks on prebuilt binaries for faster build and 4KB kernel compatibility
-PRODUCT_CHECK_ELF_FILES := false
+# Disable page-size checks on prebuilt binaries for 4KB kernel compatibility
 PRODUCT_CHECK_PREBUILT_MAX_PAGE_SIZE := false
 
 # Recovery init scripts
