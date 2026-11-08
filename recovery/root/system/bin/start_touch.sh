@@ -7,6 +7,8 @@ setup_mounts() {
     mount -o bind /system/vendor/firmware /vendor/firmware 2>/dev/null
 }
 
+# Initial wait for TWRP partition manager to finish unlinking /vendor
+sleep 3
 setup_mounts
 
 # Vivo props
@@ -25,22 +27,21 @@ chmod 0666 /dev/input/event* 2>/dev/null
 # Ensure backlight is on
 echo 6000 > /sys/class/leds/lcd-backlight/brightness 2>/dev/null
 
-# Start recovery service
-setprop vendor.vivo.touch.support.vtsthp_recovery0 1
+# Restart vtsthp now that /vendor/firmware is properly mounted
+killall vtsthp 2>/dev/null
 start vtsthpServiceRecovery0 2>/dev/null
 
-# Persistent supervisor: If TWRP unlinks /vendor or if vtsthp dies, restore and restart!
-(
-    while true; do
-        sleep 2
-        if [ ! -f /vendor/firmware/touch_firmwares_recovery.bin ]; then
-            setup_mounts
-            setprop vendor.vivo.touch.support.vtsthp_recovery0 1
-            start vtsthpServiceRecovery0 2>/dev/null
-        fi
-        if ! pidof vtsthp >/dev/null 2>&1; then
-            echo 1 > /sys/class/vts/vivo_ts/status/force_normal 2>/dev/null
-            start vtsthpServiceRecovery0 2>/dev/null
-        fi
-    done
-) &
+# Continuous supervisor loop (runs in foreground of daemon service, NO oneshot)
+while true; do
+    sleep 2
+    if [ ! -f /vendor/firmware/touch_firmwares_recovery.bin ]; then
+        setup_mounts
+        killall vtsthp 2>/dev/null
+        echo 1 > /sys/class/vts/vivo_ts/status/force_normal 2>/dev/null
+        start vtsthpServiceRecovery0 2>/dev/null
+    fi
+    if ! pidof vtsthp >/dev/null 2>&1; then
+        echo 1 > /sys/class/vts/vivo_ts/status/force_normal 2>/dev/null
+        start vtsthpServiceRecovery0 2>/dev/null
+    fi
+done

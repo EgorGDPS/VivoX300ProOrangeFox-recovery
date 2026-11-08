@@ -19,7 +19,6 @@ service start_touch /system/bin/sh /system/bin/start_touch.sh
 	user root
 	group root system
 	seclabel u:r:recovery:s0
-	oneshot
 
 service vtsthpServiceRecovery0 /system/bin/vtsthp --thp 0
 	class core
