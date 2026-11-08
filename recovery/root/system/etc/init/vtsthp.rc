@@ -22,32 +22,30 @@ on property:vendor.vivo.touch.support.vtsthp_recovery1=1
     chmod 0664 /dev/vts_thp1
     start vtsthpServiceRecovery1
 
-
-service vtsthpService0 /vendor/bin/vtsthp --thp 0
+service vtsthpService0 /system/bin/vtsthp --thp 0
     class core
     user root
     group system
     disabled
     seclabel u:r:vts_app:s0
 
-service vtsthpService1 /vendor/bin/vtsthp --thp 1
+service vtsthpService1 /system/bin/vtsthp --thp 1
     class core
     user root
     group system
     disabled
     seclabel u:r:vts_app:s0
 
-service vtsthpServiceRecovery0 /vendor/bin/vtsthp --thp 0
+service vtsthpServiceRecovery0 /system/bin/vtsthp --thp 0
     class core
     user root
     group system
     disabled
     seclabel u:r:recovery:s0
 
-service vtsthpServiceRecovery1 /vendor/bin/vtsthp --thp 1
+service vtsthpServiceRecovery1 /system/bin/vtsthp --thp 1
     class core
     user root
     group system
     disabled
     seclabel u:r:recovery:s0
-

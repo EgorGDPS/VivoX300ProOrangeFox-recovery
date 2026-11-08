@@ -1,9 +1,10 @@
 dir.recovery = /system/bin
-dir.recovery = /vendor/bin
-
 [recovery]
 namespace.default.isolated = false
-namespace.default.search.paths = /system/${LIB}:/vendor/${LIB}:/system/vendor/${LIB}
-namespace.default.permitted.paths = /system:/vendor:/system/vendor
-namespace.default.asan.search.paths = /data/asan/system/${LIB}:/system/${LIB}:/vendor/${LIB}
-namespace.default.hwasan.search.paths = /system/${LIB}/hwasan:/system/${LIB}:/vendor/${LIB}
+namespace.default.search.paths = /system/${LIB}
+namespace.default.search.paths += /system/vendor/${LIB}
+namespace.default.search.paths += /vendor/${LIB}
+namespace.default.asan.search.paths = /data/asan/system/${LIB}
+namespace.default.asan.search.paths += /system/${LIB}
+namespace.default.hwasan.search.paths = /system/${LIB}/hwasan
+namespace.default.hwasan.search.paths += /system/${LIB}

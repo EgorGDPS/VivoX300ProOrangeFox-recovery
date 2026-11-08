@@ -1,32 +1,30 @@
-# Vivo touchscreen init for OrangeFox Recovery
-on early-init
-    setprop ro.vivo.product.model PD2502
-    setprop ro.vendor.vivo.product.model PD2502
-    setprop ro.build.oem.projects PD2502
-
-on init
-    setprop ro.vivo.product.model PD2502
-    setprop ro.vendor.vivo.product.model PD2502
-    setprop ro.build.oem.projects PD2502
-    setprop vendor.vivo.touch.support.vtsthp0 1
-    setprop vendor.vivo.touch.support.vtsthp_recovery0 1
-
-on fs
-    wait /sys/class/vts/vivo_ts/status/proximity 5
-    write /sys/class/vts/vivo_ts/status/proximity 0
-    write /sys/class/vts/vivo_ts/status/force_normal 1
-    start start_touch
-
 on boot
-    chmod 0666 /dev/vts_thp0
-    chmod 0666 /dev/input/event*
-    write /sys/class/vts/vivo_ts/status/proximity 0
-    write /sys/class/vts/vivo_ts/status/force_normal 1
-    start start_touch
+	setprop ro.vivo.product.model PD2502
+	setprop ro.vendor.vivo.product.model PD2502
+	setprop ro.build.oem.projects PD2502
+	chmod 0666 /dev/vts_thp0
+	chmod 0666 /dev/vts_thp1
+	chmod 0666 /dev/vivo_input_agent
+	chmod 0666 /dev/vivo_gdix_thp
+	write /sys/class/vts/vivo_ts/status/proximity 0
+	write /sys/class/vts/vivo_ts/status/force_normal 1
+	start start_touch
+	start vtsthpServiceRecovery0
+
+on property:vendor.vivo.touch.support.vtsthp_recovery0=1
+	chmod 0666 /dev/vts_thp0
+	start vtsthpServiceRecovery0
 
 service start_touch /system/bin/sh /system/bin/start_touch.sh
-    class core
-    user root
-    group root system
-    seclabel u:r:recovery:s0
-    oneshot
+	class core
+	user root
+	group root system
+	seclabel u:r:recovery:s0
+	oneshot
+
+service vtsthpServiceRecovery0 /system/bin/vtsthp --thp 0
+	class core
+	user root
+	group system
+	disabled
+	seclabel u:r:recovery:s0
