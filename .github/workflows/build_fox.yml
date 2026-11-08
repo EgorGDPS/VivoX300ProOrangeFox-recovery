@@ -95,6 +95,10 @@ jobs:
           # Ensure mkbootimg defaults to header_version 4 for vendor ramdisk fragments
           find system/tools/mkbootimg -name "mkbootimg.py" -exec sed -i "s/version_parser.add_argument('--header_version', type=parse_int, default=0)/version_parser.add_argument('--header_version', type=parse_int, default=4)/g" {} + || true
           find system/tools/mkbootimg -name "mkbootimg.py" -exec sed -i "s/'--header_version', help='boot image header version', type=parse_int, default=0/'--header_version', help='boot image header version', type=parse_int, default=4/g" {} + || true
+          # Neutralize duplicate libblkid module collision (already provided by external/util-linux)
+          if [ -f bootable/recovery/libblkid/Android.mk ]; then
+            echo "# Redundant: libblkid is defined by external/util-linux" > bootable/recovery/libblkid/Android.mk
+          fi
 
       - name: Compile OrangeFox Recovery
         run: |
