@@ -22,9 +22,3 @@ chmod 0666 /dev/input/event* 2>/dev/null
 
 # Ensure backlight is on
 echo 6000 > /sys/class/leds/lcd-backlight/brightness 2>/dev/null
-
-# Launch daemon loop
-while true; do
-    /system/bin/vtsthp --thp 0
-    sleep 1
-done &
