@@ -111,6 +111,31 @@ jobs:
           lunch twrp_PD2502-bp2a-eng
           mka vendorbootimage recoveryimage -j$(nproc)
 
+      - name: Assemble Bootable Dual-Ramdisk vendor_boot
+        run: |
+          cd ~/OrangeFox/out/target/product/PD2502
+          MAGISKBOOT=~/OrangeFox/out/host/linux-x86/bin/magiskboot
+          if [ ! -f "$MAGISKBOOT" ]; then
+            MAGISKBOOT=$(which magiskboot || true)
+          fi
+          mkdir -p /tmp/repack_fox && cd /tmp/repack_fox
+          $MAGISKBOOT unpack ~/OrangeFox/out/target/product/PD2502/vendor_boot.img || true
+          RECOVERY_CPIO="$(pwd)/vendor_ramdisk/recovery.cpio"
+          if [ ! -f "$RECOVERY_CPIO" ]; then
+            RECOVERY_CPIO="$(pwd)/ramdisk.cpio"
+          fi
+          mkdir -p /tmp/final_vendor/vendor_ramdisk && cd /tmp/final_vendor
+          xz -d -c ~/OrangeFox/device/vivo/PD2502/prebuilt/platform_ramdisk.cpio.xz > vendor_ramdisk/ramdisk.cpio
+          cp "$RECOVERY_CPIO" vendor_ramdisk/recovery.cpio
+          cp ~/OrangeFox/device/vivo/PD2502/prebuilt/bootconfig ./bootconfig
+          cp ~/OrangeFox/device/vivo/PD2502/prebuilt/dtb.img ./dtb
+          cat << 'EOF' > header
+name=
+cmdline=bootopt=64S3,32N2,64N2 product.version=PD2502F_EX_A_16.0.4.3.W20 fingerprint.abbr=16/BP2A.250605.031.A3 region_ver=W20 product.solution=MTK bootconfig
+EOF
+          $MAGISKBOOT repack ~/OrangeFox/out/target/product/PD2502/vendor_boot.img ~/OrangeFox/out/target/product/PD2502/OrangeFox-vendor_boot-PD2502.img
+          echo "Assembled OrangeFox-vendor_boot-PD2502.img successfully!"
+
       - name: Upload Output Recovery Images
         uses: actions/upload-artifact@v4
         if: always()
