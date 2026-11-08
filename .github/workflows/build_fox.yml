@@ -129,10 +129,7 @@ jobs:
           cp "$RECOVERY_CPIO" vendor_ramdisk/recovery.cpio
           cp ~/OrangeFox/device/vivo/PD2502/prebuilt/bootconfig ./bootconfig
           cp ~/OrangeFox/device/vivo/PD2502/prebuilt/dtb.img ./dtb
-          cat << 'EOF' > header
-name=
-cmdline=bootopt=64S3,32N2,64N2 product.version=PD2502F_EX_A_16.0.4.3.W20 fingerprint.abbr=16/BP2A.250605.031.A3 region_ver=W20 product.solution=MTK bootconfig
-EOF
+          printf "name=\ncmdline=bootopt=64S3,32N2,64N2 product.version=PD2502F_EX_A_16.0.4.3.W20 fingerprint.abbr=16/BP2A.250605.031.A3 region_ver=W20 product.solution=MTK bootconfig\n" > header
           $MAGISKBOOT repack ~/OrangeFox/out/target/product/PD2502/vendor_boot.img ~/OrangeFox/out/target/product/PD2502/OrangeFox-vendor_boot-PD2502.img
           echo "Assembled OrangeFox-vendor_boot-PD2502.img successfully!"
 
