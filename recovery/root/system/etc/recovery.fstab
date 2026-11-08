@@ -2,22 +2,14 @@
 # <src>                                      <mnt_point>  <type>  <mnt_flags and options>  <fs_mgr_flags>
 
 # Logical Dynamic Partitions (Super)
-system          /system          erofs    ro    wait,slotselect,logical,first_stage_mount
-system          /system          ext4     ro    wait,slotselect,logical,first_stage_mount
-system_ext      /system_ext      erofs    ro    wait,slotselect,logical,first_stage_mount
-system_ext      /system_ext      ext4     ro    wait,slotselect,logical,first_stage_mount
-vendor          /vendor          erofs    ro    wait,slotselect,logical,first_stage_mount
-vendor          /vendor          ext4     ro    wait,slotselect,logical,first_stage_mount
-product         /product         erofs    ro    wait,slotselect,logical,first_stage_mount
-product         /product         ext4     ro    wait,slotselect,logical,first_stage_mount
-odm             /odm             erofs    ro    wait,slotselect,logical,first_stage_mount
-odm             /odm             ext4     ro    wait,slotselect,logical,first_stage_mount
-vendor_dlkm     /vendor_dlkm     erofs    ro    wait,slotselect,logical,first_stage_mount
-vendor_dlkm     /vendor_dlkm     ext4     ro    wait,slotselect,logical,first_stage_mount
-odm_dlkm        /odm_dlkm        erofs    ro    wait,slotselect,logical,first_stage_mount
-odm_dlkm        /odm_dlkm        ext4     ro    wait,slotselect,logical,first_stage_mount
-system_dlkm     /system_dlkm     erofs    ro    wait,slotselect,logical,first_stage_mount
-system_dlkm     /system_dlkm     ext4     ro    wait,slotselect,logical,first_stage_mount
+system          /system_root     erofs    ro    wait,slotselect,logical
+system_ext      /system_ext      erofs    ro    wait,slotselect,logical
+vendor          /vendor          erofs    ro    wait,slotselect,logical
+product         /product         erofs    ro    wait,slotselect,logical
+odm             /odm             erofs    ro    wait,slotselect,logical
+vendor_dlkm     /vendor_dlkm     erofs    ro    wait,slotselect,logical
+odm_dlkm        /odm_dlkm        erofs    ro    wait,slotselect,logical
+system_dlkm     /system_dlkm     erofs    ro    wait,slotselect,logical
 
 # Metadata & Userdata
 /dev/block/by-name/metadata     /metadata     f2fs    noatime,nosuid,nodev,discard                                wait,check,formattable,first_stage_mount

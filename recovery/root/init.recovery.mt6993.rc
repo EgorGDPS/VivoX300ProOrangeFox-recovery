@@ -12,7 +12,21 @@ on property:sys.usb.config=mtp && property:sys.usb.configfs=1
     setprop sys.usb.config adb
 
 on property:sys.usb.config=none && property:sys.usb.configfs=1
-    setprop sys.usb.config adb
+    setprop sys.usb.state none
+
+on property:sys.usb.config=adb && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/idProduct 0x${ro.recovery.usb.adb.pid}
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state adb
+
+on property:sys.usb.config=sideload && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/idProduct 0x${ro.recovery.usb.adb.pid}
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state sideload
 
 on late-init
     start mtk_storageproxyd
