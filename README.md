@@ -11,20 +11,38 @@
 
 ---
 
+## Current Status & Working Features
+- [x] **Native OLED Display:** 1260 x 2800 resolution with functional brightness control.
+- [x] **Touchscreen (Out-of-the-box):** Goodix GT9916 (`/dev/vts_thp0`, `/dev/input/event4`) managed by supervisor service and userland `vtsthp`.
+- [x] **Haptics:** Linear Resonant Actuator (LRA) feedback enabled.
+- [x] **Dynamic Partitions:** All 8 logical partitions (`system_root`, `system_ext`, `vendor`, `product`, `odm`, `vendor_dlkm`, `odm_dlkm`, `system_dlkm`) mapped and mountable via GUI and CLI.
+- [x] **ADB Sideload:** Full ConfigFS USB gadget state machine for `sideload` and `adb`.
+- [x] **Magisk ZIP Flashing:** Supported with `/cache -> /tmp` RAM staging and `$PATH` integration for encrypted userdata.
+- [x] **ADB & MTP:** Functional USB modes in recovery.
+
+---
+
 ## Partition Architecture & Layout
 Modern MediaTek flagships (Dimensity 9300/9400/9500) do NOT have a separate `/recovery` partition.
 Instead:
 - `boot.img`: Generic Kernel Image (`kernel`).
-- `init_boot.img`: Generic first-stage ramdisk.
+- `init_boot.img`: Generic first-stage ramdisk (root target for Magisk).
 - `vendor_boot.img`: Device Tree Blob (`dtb`), `bootconfig`, platform vendor ramdisk, and the **recovery ramdisk** (`type=[recovery]`).
 - `super.img`: Dynamic logical partitions (`system`, `system_ext`, `vendor`, `product`, `odm`, `vendor_dlkm`, `cust`, `vgc`).
 - `userdata`: F2FS with Dual UFS RAID mapper (`userdata_setup` -> `/dev/block/mapper/mtk_userdata`) and FBEv2 inlinecrypt (`aes-256-xts:aes-256-cts:v2+inlinecrypt_optimized`).
 
 ---
 
-## Building OrangeFox Recovery
+## Building Recovery Image
 
-### 1. Set Up the OrangeFox Build Environment
+### Method 1: Standalone Perfect Assembly (Recommended)
+You can directly assemble the tested, verified vendor_boot recovery image using the included script:
+```bash
+python3 assemble_perfect_recovery.py
+```
+This unpacks the base recovery ramdisk, injects the Goodix touch daemon and libraries, sets non-blocking `/vendor` symlinks, patches `init.rc` for `/cache -> /tmp`, configures ConfigFS USB triggers, and packs the final `vendor_boot` header v4 image.
+
+### Method 2: OrangeFox Build Environment
 Sync an OrangeFox source manifest supporting Android 14+ or 15+ (e.g. `fox_14.1` or newer):
 ```bash
 mkdir -p ~/OrangeFox && cd ~/OrangeFox
@@ -32,13 +50,7 @@ repo init --depth=1 -u https://gitlab.com/OrangeFox/manifest.git -b fox_14.1
 repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 ```
 
-### 2. Copy the Device Tree
-Clone or copy this folder to `device/vivo/PD2502`:
-```bash
-cp -r /path/to/device_vivo_PD2502 ~/OrangeFox/device/vivo/PD2502
-```
-
-### 3. Build OrangeFox
+Copy this repository to `device/vivo/PD2502` and build:
 ```bash
 cd ~/OrangeFox
 source build/envsetup.sh
@@ -47,8 +59,6 @@ lunch fox_PD2502-eng
 mka recoveryimage -j$(nproc --all)
 ```
 
-The output will be generated in `out/target/product/PD2502/vendor_boot.img` and `OrangeFox-*.zip`.
-
 ---
 
 ## Flashing Instructions
@@ -56,7 +66,7 @@ The output will be generated in `out/target/product/PD2502/vendor_boot.img` and 
 Because recovery is integrated into `vendor_boot`:
 ```bash
 adb reboot bootloader
-fastboot flash vendor_boot vendor_boot.img
+fastboot flash vendor_boot OrangeFox-vendor_boot-PD2502.img
 fastboot reboot recovery
 ```
 
