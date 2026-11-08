@@ -35,29 +35,58 @@
 
 ## Building Recovery Image
 
-### Method 1: Standalone Perfect Assembly (Recommended)
-You can directly assemble the tested, verified vendor_boot recovery image using the included script:
+### Method 1: Standalone Perfect Assembly (Fastest & Verified)
+You can directly assemble the tested, verified vendor_boot recovery image using the included self-contained script:
 ```bash
 python3 assemble_perfect_recovery.py
 ```
-This unpacks the base recovery ramdisk, injects the Goodix touch daemon and libraries, sets non-blocking `/vendor` symlinks, patches `init.rc` for `/cache -> /tmp`, configures ConfigFS USB triggers, and packs the final `vendor_boot` header v4 image.
+This unpacks the base recovery ramdisk, injects the Goodix touch daemon and libraries, sets non-blocking `/vendor` symlinks, patches `init.rc` for `/cache -> /tmp`, configures ConfigFS USB triggers, extracts the stock platform ramdisk, and packs the final header v4 `OrangeFox-vendor_boot-PD2502.img`.
 
-### Method 2: OrangeFox Build Environment
-Sync an OrangeFox source manifest supporting Android 14+ or 15+ (e.g. `fox_14.1` or newer):
+### Method 2: OrangeFox 16.0 Build from Source
+Sync the OrangeFox Android 16 (`fox_16.0`) source tree:
 ```bash
 mkdir -p ~/OrangeFox && cd ~/OrangeFox
-repo init --depth=1 -u https://gitlab.com/OrangeFox/manifest.git -b fox_14.1
+repo init --depth=1 -u https://gitlab.com/OrangeFox/Manifest.git -b fox_16.0
 repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 ```
 
-Copy this repository to `device/vivo/PD2502` and build:
+Copy this repository to `device/vivo/PD2502`:
+```bash
+cp -r /path/to/device_vivo_PD2502 ~/OrangeFox/device/vivo/PD2502
+```
+
+Build OrangeFox recovery:
 ```bash
 cd ~/OrangeFox
 source build/envsetup.sh
 source device/vivo/PD2502/vendorsetup.sh
-lunch fox_PD2502-eng
-mka recoveryimage -j$(nproc --all)
+lunch twrp_PD2502-bp2a-eng
+mka vendorbootimage recoveryimage -j$(nproc --all)
 ```
+
+Post-build assembly with all hardware drivers and mods:
+```bash
+python3 device/vivo/PD2502/assemble_perfect_recovery.py \
+  --fox-base out/target/product/PD2502/vendor_boot.img \
+  --device-tree device/vivo/PD2502 \
+  --output out/target/product/PD2502/OrangeFox-vendor_boot-PD2502.img
+```
+
+---
+
+## GitHub Actions Automated CI/CD Workflow
+
+The repository includes a production-ready automated build workflow located at [`.github/workflows/build_fox.yml`](.github/workflows/build_fox.yml).
+
+### Workflow Features
+1. **Automated Pipeline on Push & Manual Dispatch:** Runs automatically on push to `main` or on demand via `workflow_dispatch`.
+2. **Resource Optimization:** Configures 16GB swap on Ubuntu runner and tunes Go Soong compiler memory limits (`GOMEMLIMIT=12GiB`) to prevent out-of-memory errors during AOSP Android 16 compilation.
+3. **Android 16 Compatibility Patches:**
+   - Automatically handles 16KB vs 4KB page size enforcement for prebuilt binaries.
+   - Applies `host_init_verifier` patches to accommodate vendor init syntax.
+   - Enforces Header Version 4 in `mkbootimg`.
+4. **Automated Perfect Assembly:** Runs `assemble_perfect_recovery.py` on the compiled `vendor_boot.img` output to inject all verified mods (Goodix touchscreen drivers, haptics, sideload triggers, `/cache -> /tmp` staging).
+5. **Artifacts & Checksums:** Automatically computes SHA256 checksums and uploads `OrangeFox-vendor_boot-PD2502.img` and `SHA256SUMS.txt` as downloadable GitHub Actions release artifacts.
 
 ---
 

@@ -111,25 +111,15 @@ jobs:
           lunch twrp_PD2502-bp2a-eng
           mka vendorbootimage recoveryimage -j$(nproc)
 
-      - name: Assemble Bootable Dual-Ramdisk vendor_boot
+      - name: Assemble Perfect Dual-Ramdisk vendor_boot
         run: |
+          python3 $GITHUB_WORKSPACE/device_tree/assemble_perfect_recovery.py \
+            --fox-base ~/OrangeFox/out/target/product/PD2502/vendor_boot.img \
+            --device-tree $GITHUB_WORKSPACE/device_tree \
+            --output ~/OrangeFox/out/target/product/PD2502/OrangeFox-vendor_boot-PD2502.img
           cd ~/OrangeFox/out/target/product/PD2502
-          MAGISKBOOT=~/OrangeFox/device/vivo/PD2502/prebuilt/magiskboot
-          chmod +x "$MAGISKBOOT"
-          mkdir -p /tmp/repack_fox && cd /tmp/repack_fox
-          $MAGISKBOOT unpack -n ~/OrangeFox/out/target/product/PD2502/vendor_boot.img || true
-          RECOVERY_CPIO="$(pwd)/vendor_ramdisk/recovery.cpio"
-          if [ ! -f "$RECOVERY_CPIO" ]; then
-            RECOVERY_CPIO="$(pwd)/ramdisk.cpio"
-          fi
-          mkdir -p /tmp/final_vendor/vendor_ramdisk && cd /tmp/final_vendor
-          xz -d -c ~/OrangeFox/device/vivo/PD2502/prebuilt/platform_ramdisk.cpio.xz > vendor_ramdisk/ramdisk.cpio
-          cp "$RECOVERY_CPIO" vendor_ramdisk/recovery.cpio
-          cp ~/OrangeFox/device/vivo/PD2502/prebuilt/bootconfig ./bootconfig
-          cp ~/OrangeFox/device/vivo/PD2502/prebuilt/dtb.img ./dtb
-          printf "name=\ncmdline=bootopt=64S3,32N2,64N2 product.version=PD2502F_EX_A_16.0.4.3.W20 fingerprint.abbr=16/BP2A.250605.031.A3 region_ver=W20 product.solution=MTK bootconfig\n" > header
-          $MAGISKBOOT repack -n ~/OrangeFox/out/target/product/PD2502/vendor_boot.img ~/OrangeFox/out/target/product/PD2502/OrangeFox-vendor_boot-PD2502.img
-          echo "Assembled OrangeFox-vendor_boot-PD2502.img successfully!"
+          sha256sum OrangeFox-vendor_boot-PD2502.img > SHA256SUMS.txt
+          echo "Assembled and verified OrangeFox-vendor_boot-PD2502.img successfully!"
 
       - name: Upload Output Recovery Images
         uses: actions/upload-artifact@v4
@@ -137,6 +127,7 @@ jobs:
         with:
           name: OrangeFox-vivo-x300pro-PD2502
           path: |
-            ~/OrangeFox/out/target/product/PD2502/*.img
+            ~/OrangeFox/out/target/product/PD2502/OrangeFox-vendor_boot-PD2502.img
+            ~/OrangeFox/out/target/product/PD2502/SHA256SUMS.txt
+            ~/OrangeFox/out/target/product/PD2502/vendor_boot.img
             ~/OrangeFox/out/target/product/PD2502/OrangeFox-*.zip
-            ~/OrangeFox/out/target/product/PD2502/ramdisk-recovery.cpio
