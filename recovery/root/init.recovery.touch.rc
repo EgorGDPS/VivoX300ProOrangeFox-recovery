@@ -1,5 +1,10 @@
 on boot
 	trigger check_vts
+	trigger start_vts_app_recovery
+	start only_triger_vts_app_recovery
+	start touchupdate
+	start touchaddpanel
+	start touch_property-set
 
 #normal mode
 on check_vts
@@ -178,28 +183,32 @@ on start_vts_app_recovery
 
 service only_triger_vts_app_recovery /system/bin/vts_app_recovery --start
 	class core
-	user system
+	user root
+	group root
 	disabled
 	seclabel u:r:recovery:s0
 	oneshot
 
 service touchupdate /system/bin/vts_app_recovery --update
 	class core
-	user system
+	user root
+	group root
 	disabled
 	seclabel u:r:recovery:s0
 	oneshot
 
 service touchaddpanel /system/bin/vts_app_recovery --addpanel
 	class core
-	user system
+	user root
+	group root
 	disabled
 	seclabel u:r:recovery:s0
 	oneshot
 
 service touch_property-set /system/bin/vts_app_recovery --property-set
 	class core
-	user system
+	user root
+	group root
 	disabled
 	seclabel u:r:recovery:s0
 	oneshot

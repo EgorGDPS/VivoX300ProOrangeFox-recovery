@@ -27,5 +27,9 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/recovery/root/system/bin/userdata_setup:$(TARGET_COPY_OUT_RECOVERY)/root/system/bin/userdata_setup \
     $(LOCAL_PATH)/recovery/root/system/bin/vts_app_recovery:$(TARGET_COPY_OUT_RECOVERY)/root/system/bin/vts_app_recovery
 
-# Touchscreen firmware binaries
+# Touchscreen firmware, helper binaries, and vendor HAL libraries
 PRODUCT_COPY_FILES += $(call find-copy-subdir-files,*,$(LOCAL_PATH)/recovery/root/system/vendor/firmware,$(TARGET_COPY_OUT_RECOVERY)/root/system/vendor/firmware)
+PRODUCT_COPY_FILES += $(call find-copy-subdir-files,*,$(LOCAL_PATH)/recovery/root/system/vendor/lib64,$(TARGET_COPY_OUT_RECOVERY)/root/system/vendor/lib64)
+PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/recovery/root/system/vendor/bin/vtsthp:$(TARGET_COPY_OUT_RECOVERY)/root/system/vendor/bin/vtsthp \
+    $(LOCAL_PATH)/recovery/root/system/etc/init/vtsthp.rc:$(TARGET_COPY_OUT_RECOVERY)/root/system/etc/init/vtsthp.rc

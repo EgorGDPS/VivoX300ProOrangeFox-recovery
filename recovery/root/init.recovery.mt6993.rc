@@ -4,6 +4,15 @@ on init
     setprop sys.usb.configfs 1
     setprop sys.usb.controller "16751000.usb0"
 
+on property:sys.usb.config=mtp,adb && property:sys.usb.configfs=1
+    setprop sys.usb.config adb
+
+on property:sys.usb.config=mtp && property:sys.usb.configfs=1
+    setprop sys.usb.config adb
+
+on property:sys.usb.config=none && property:sys.usb.configfs=1
+    setprop sys.usb.config adb
+
 on late-init
     start mtk_storageproxyd
 
