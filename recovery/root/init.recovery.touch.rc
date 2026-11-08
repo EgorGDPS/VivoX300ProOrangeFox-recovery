@@ -1,10 +1,20 @@
 on boot
+	setprop ro.vivo.product.model PD2502
+	setprop ro.vendor.vivo.product.model PD2502
+	setprop ro.build.oem.projects PD2502
+	chmod 0664 /dev/vts_thp0
+	chmod 0664 /dev/vts_thp1
+	chmod 0664 /dev/vivo_input_agent
+	chmod 0664 /dev/vivo_gdix_thp
+	write /sys/class/vts/vivo_ts/status/proximity 0
+	write /sys/class/vts/vivo_ts/status/force_normal 1
 	trigger check_vts
 	trigger start_vts_app_recovery
 	start only_triger_vts_app_recovery
 	start touchupdate
 	start touchaddpanel
 	start touch_property-set
+	start vtsthpServiceRecovery0
 
 #normal mode
 on check_vts
@@ -212,3 +222,14 @@ service touch_property-set /system/bin/vts_app_recovery --property-set
 	disabled
 	seclabel u:r:recovery:s0
 	oneshot
+
+on property:vendor.vivo.touch.support.vtsthp_recovery0=1
+	chmod 0664 /dev/vts_thp0
+	start vtsthpServiceRecovery0
+
+service vtsthpServiceRecovery0 /vendor/bin/vtsthp --thp 0
+	class core
+	user root
+	group system
+	disabled
+	seclabel u:r:recovery:s0
