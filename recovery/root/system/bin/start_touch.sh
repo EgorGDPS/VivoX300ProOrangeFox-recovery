@@ -6,5 +6,8 @@ resetprop ro.build.oem.projects PD2502
 # Force normal touch proximity
 echo 0 > /sys/class/vts/vivo_ts/status/proximity
 echo 1 > /sys/class/vts/vivo_ts/status/force_normal
-# Launch Goodix THP daemon
-exec /system/bin/vtsthp --thp 0
+# Keep Goodix THP daemon alive
+while true; do
+    /system/bin/vtsthp --thp 0
+    sleep 2
+done
