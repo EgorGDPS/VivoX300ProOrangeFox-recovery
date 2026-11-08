@@ -29,7 +29,8 @@ BOARD_MKBOOTIMG_ARGS := --header_version 4
 BOARD_KERNEL_BASE := 0x40078000
 BOARD_PAGE_SIZE := 4096
 
-BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 product.version=PD2502F_EX_A_16.0.4.3.W20 region_ver=W20 product.solution=MTK bootconfig
+BOARD_KERNEL_CMDLINE := bootopt=64S3,32N2,64N2 product.version=PD2502F_EX_A_16.0.4.3.W20 fingerprint.abbr=16/BP2A.250605.031.A3 region_ver=W20 product.solution=MTK bootconfig
+BOARD_BOOTCONFIG_FILE := $(DEVICE_PATH)/prebuilt/bootconfig
 BOARD_INCLUDE_DTB_IN_BOOTIMG := true
 BOARD_PREBUILT_DTBIMAGE_DIR := $(DEVICE_PATH)/prebuilt
 BOARD_PREBUILT_DTB := $(DEVICE_PATH)/prebuilt/dtb.img
