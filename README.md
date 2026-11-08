@@ -1,5 +1,7 @@
 # OrangeFox / TWRP Device Tree for vivo X300 Pro (PD2502 / V2514)
 
+# WARNING MOST THINGS ARE UNTESTED AND CAN BREAK
+
 ## Device Specifications
 - **Brand:** vivo
 - **Model:** vivo X300 Pro (PD2502F_EX / V2514)
@@ -17,14 +19,12 @@
 - [x] **Haptics:** Linear Resonant Actuator (LRA) feedback enabled.
 - [x] **Dynamic Partitions:** All 8 logical partitions (`system_root`, `system_ext`, `vendor`, `product`, `odm`, `vendor_dlkm`, `odm_dlkm`, `system_dlkm`) mapped and mountable via GUI and CLI.
 - [x] **ADB Sideload:** Full ConfigFS USB gadget state machine for `sideload` and `adb`.
-- [x] **Magisk ZIP Flashing:** Supported with `/cache -> /tmp` RAM staging and `$PATH` integration for encrypted userdata.
+- [x] **ZIP Flashing:** Supported with `/cache -> /tmp` RAM staging and `$PATH` integration for encrypted userdata.
 - [x] **ADB & MTP:** Functional USB modes in recovery.
 
 ---
 
 ## Partition Architecture & Layout
-Modern MediaTek flagships (Dimensity 9300/9400/9500) do NOT have a separate `/recovery` partition.
-Instead:
 - `boot.img`: Generic Kernel Image (`kernel`).
 - `init_boot.img`: Generic first-stage ramdisk (root target for Magisk).
 - `vendor_boot.img`: Device Tree Blob (`dtb`), `bootconfig`, platform vendor ramdisk, and the **recovery ramdisk** (`type=[recovery]`).
