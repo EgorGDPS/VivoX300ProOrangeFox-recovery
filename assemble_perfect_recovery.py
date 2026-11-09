@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import lzma
 import argparse
+import tempfile
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,18 +14,26 @@ def main():
     parser.add_argument("--fox-base", default=None, help="Path to base OrangeFox vendor_boot.img (defaults to auto-detect)")
     parser.add_argument("--device-tree", default=script_dir, help="Path to device tree root (default: script directory)")
     parser.add_argument("--output", default=None, help="Path to output vendor_boot.img")
-    parser.add_argument("--work-dir", default="/home/egorf/repack_workspace", help="Path to temporary working directory")
+    parser.add_argument("--work-dir", default=None, help="Path to temporary working directory")
     args = parser.parse_args()
 
     dt_dir = os.path.abspath(args.device_tree)
-    work_dir = os.path.abspath(args.work_dir)
+
+    user_home = os.path.expanduser("~")
+
+    if args.work_dir:
+        work_dir = os.path.abspath(args.work_dir)
+    elif os.path.isdir(user_home) and os.access(user_home, os.W_OK):
+        work_dir = os.path.join(user_home, "repack_workspace")
+    else:
+        work_dir = os.path.join(tempfile.gettempdir(), "repack_workspace")
 
     # Detect fox_base
     fox_base = args.fox_base
     if not fox_base:
         candidates = [
             os.path.expanduser("~/OrangeFox/out/target/product/PD2502/vendor_boot.img"),
-            "/home/egorf/OrangeFox-vivo-x300pro-PD2502/vendor_boot.img",
+            os.path.expanduser("~/OrangeFox-vivo-x300pro-PD2502/vendor_boot.img"),
             os.path.join(dt_dir, "prebuilt", "vendor_boot.img"),
             os.path.join(dt_dir, "vendor_boot.img"),
             os.path.join(script_dir, "vendor_boot.img"),
@@ -41,7 +50,10 @@ def main():
     # Detect output
     out_img = args.output
     if not out_img:
-        out_img = "/home/egorf/OrangeFox-vendor_boot-PD2502.img"
+        if os.path.isdir(user_home) and os.access(user_home, os.W_OK):
+            out_img = os.path.join(user_home, "OrangeFox-vendor_boot-PD2502.img")
+        else:
+            out_img = os.path.join(os.getcwd(), "OrangeFox-vendor_boot-PD2502.img")
 
     magiskboot = os.path.join(dt_dir, "prebuilt", "magiskboot")
     if not os.path.exists(magiskboot):

@@ -120,7 +120,8 @@ jobs:
           python3 $GITHUB_WORKSPACE/device_tree/assemble_perfect_recovery.py \
             --fox-base ~/OrangeFox/out/target/product/PD2502/vendor_boot.img \
             --device-tree $GITHUB_WORKSPACE/device_tree \
-            --output ~/OrangeFox/out/target/product/PD2502/OrangeFox-vendor_boot-PD2502.img
+            --output ~/OrangeFox/out/target/product/PD2502/OrangeFox-vendor_boot-PD2502.img \
+            --work-dir /tmp/repack_workspace
           cd ~/OrangeFox/out/target/product/PD2502
           sha256sum OrangeFox-vendor_boot-PD2502.img > SHA256SUMS.txt
           echo "Assembled and verified OrangeFox-vendor_boot-PD2502.img successfully!"
