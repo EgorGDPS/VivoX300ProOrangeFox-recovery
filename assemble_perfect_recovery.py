@@ -13,7 +13,7 @@ def main():
     parser.add_argument("--fox-base", default=None, help="Path to base OrangeFox vendor_boot.img (defaults to auto-detect)")
     parser.add_argument("--device-tree", default=script_dir, help="Path to device tree root (default: script directory)")
     parser.add_argument("--output", default=None, help="Path to output vendor_boot.img")
-    parser.add_argument("--work-dir", default="/tmp/repack_workspace", help="Path to temporary working directory")
+    parser.add_argument("--work-dir", default="/home/egorf/repack_workspace", help="Path to temporary working directory")
     args = parser.parse_args()
 
     dt_dir = os.path.abspath(args.device_tree)
@@ -41,10 +41,7 @@ def main():
     # Detect output
     out_img = args.output
     if not out_img:
-        if os.path.exists("/home/egorf"):
-            out_img = "/home/egorf/OrangeFox-vendor_boot-PD2502.img"
-        else:
-            out_img = os.path.join(dt_dir, "OrangeFox-vendor_boot-PD2502.img")
+        out_img = "/home/egorf/OrangeFox-vendor_boot-PD2502.img"
 
     magiskboot = os.path.join(dt_dir, "prebuilt", "magiskboot")
     if not os.path.exists(magiskboot):
@@ -87,15 +84,9 @@ def main():
     print(f"OrangeFox recovery.cpio size: {os.path.getsize(rec_cpio)} bytes")
 
     print("\n3. Sanitizing recovery ramdisk root...")
-    # Remove physical vendor directory if created by mistake, ensure symlink vendor -> /system/vendor
+    # Remove physical vendor directory if present, ensure symlink vendor -> /system/vendor
     subprocess.run([magiskboot, "cpio", rec_cpio, "rm -r vendor"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     subprocess.run([magiskboot, "cpio", rec_cpio, "ln /system/vendor vendor"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    # Remove any broken root symlinks
-    subprocess.run([magiskboot, "cpio", rec_cpio, "rm cache"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    subprocess.run([magiskboot, "cpio", rec_cpio, "rm bin/getprop"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    subprocess.run([magiskboot, "cpio", rec_cpio, "rm sbin/getprop"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    subprocess.run([magiskboot, "cpio", rec_cpio, "rm etc/recovery.fstab"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    subprocess.run([magiskboot, "cpio", rec_cpio, "rm etc/twrp.flags"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     print("\n4. Preparing patched vtsthp binary...")
     stock_vtsthp = os.path.join(dt_dir, "recovery", "root", "system", "vendor", "bin", "vtsthp")
@@ -127,14 +118,20 @@ def main():
         f.write("""#!/system/bin/sh
 
 setup_mounts() {
-    mkdir -p /vendor/bin /vendor/lib64 /vendor/firmware
-    mount -o bind /system/bin /vendor/bin 2>/dev/null
-    mount -o bind /system/lib64 /vendor/lib64 2>/dev/null
-    mount -o bind /system/vendor/firmware /vendor/firmware 2>/dev/null
-    mkdir -p /tmp/cache 2>/dev/null
-    [ ! -e /cache ] && ln -sf /tmp /cache 2>/dev/null
-    [ ! -e /sbin/getprop ] && ln -sf /system/bin/toolbox /sbin/getprop 2>/dev/null
-    [ ! -e /bin/getprop ] && ln -sf /system/bin/toolbox /bin/getprop 2>/dev/null
+    echo -n /system/vendor/firmware > /sys/module/firmware_class/parameters/path 2>/dev/null
+    mkdir -p /vendor
+    if [ ! -e /vendor/lib64 ]; then
+        toybox ln -sf /system/lib64 /vendor/lib64 2>/dev/null
+    fi
+    if [ ! -e /vendor/firmware ]; then
+        toybox ln -sf /system/vendor/firmware /vendor/firmware 2>/dev/null
+    fi
+    # Magisk staging support when /data is encrypted
+    mkdir -p /tmp/cache /tmp/data_adb /tmp/data_adb/magisk 2>/dev/null
+    rm -f /cache 2>/dev/null
+    toybox ln -sf /tmp /cache 2>/dev/null
+    toybox ln -sf /system/bin/getprop /sbin/getprop 2>/dev/null
+    toybox ln -sf /system/bin/getprop /bin/getprop 2>/dev/null
 }
 
 # Initial wait for TWRP partition manager to finish unlinking /vendor
@@ -157,18 +154,15 @@ chmod 0666 /dev/input/event* 2>/dev/null
 # Ensure backlight is on
 echo 6000 > /sys/class/leds/lcd-backlight/brightness 2>/dev/null
 
-# Restart vtsthp now that /vendor/firmware is properly mounted
+# Restart vtsthp now that /vendor/firmware is properly setup
 killall vtsthp 2>/dev/null
 start vtsthpServiceRecovery0 2>/dev/null
 
 # Continuous supervisor loop (runs in foreground of daemon service, NO oneshot)
 while true; do
     sleep 2
-    if [ ! -f /vendor/firmware/touch_firmwares_recovery.bin ]; then
+    if [ ! -e /vendor/firmware ]; then
         setup_mounts
-        killall vtsthp 2>/dev/null
-        echo 1 > /sys/class/vts/vivo_ts/status/force_normal 2>/dev/null
-        start vtsthpServiceRecovery0 2>/dev/null
     fi
     if ! pidof vtsthp >/dev/null 2>&1; then
         echo 1 > /sys/class/vts/vivo_ts/status/force_normal 2>/dev/null
@@ -241,7 +235,21 @@ on property:sys.usb.config=mtp && property:sys.usb.configfs=1
     setprop sys.usb.config adb
 
 on property:sys.usb.config=none && property:sys.usb.configfs=1
-    setprop sys.usb.config adb
+    setprop sys.usb.state none
+
+on property:sys.usb.config=adb && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/idProduct 0x${ro.recovery.usb.adb.pid}
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state adb
+
+on property:sys.usb.config=sideload && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/idProduct 0x${ro.recovery.usb.adb.pid}
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state sideload
 
 on late-init
     start mtk_storageproxyd
@@ -254,6 +262,8 @@ on fs && property:ro.debuggable=0
 
 on boot
     exec u:r:update_engine:s0 root root -- /system/bin/mtk_plpath_utils
+    symlink /tmp /cache
+    symlink /system/bin/getprop /sbin/getprop
 """)
 
     # init.recovery.touch.rc
@@ -299,13 +309,43 @@ on property:sys.usb.config=mtp && property:sys.usb.configfs=1
     setprop sys.usb.config adb
 
 on property:sys.usb.config=none && property:sys.usb.configfs=1
-    setprop sys.usb.config adb
+    setprop sys.usb.state none
+
+on property:sys.usb.config=adb && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/idProduct 0x${ro.recovery.usb.adb.pid}
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state adb
+
+on property:sys.usb.config=sideload && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/idProduct 0x${ro.recovery.usb.adb.pid}
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state sideload
 """)
 
     print("\n7. Injecting files into recovery.cpio...")
     def inject(mode, target_path, src_file):
         assert not target_path.startswith("vendor/"), f"Illegal path starting with vendor/: {target_path}"
         subprocess.check_call([magiskboot, "cpio", rec_cpio, f"add {mode} {target_path} {src_file}"], cwd=fox_dir, stdout=subprocess.DEVNULL)
+
+    # Patch system/etc/init/hw/init.rc to point /cache to /tmp instead of /data/cache
+    extracted_init_rc = os.path.join(work_dir, "init.rc.extracted")
+    subprocess.check_call([magiskboot, "cpio", rec_cpio, f"extract system/etc/init/hw/init.rc {extracted_init_rc}"], cwd=fox_dir, stdout=subprocess.DEVNULL)
+    with open(extracted_init_rc, "r") as f:
+        init_rc_content = f.read()
+    init_rc_content = init_rc_content.replace("symlink /data/cache /cache", "symlink /tmp /cache")
+    patched_init_rc = os.path.join(work_dir, "init.rc.patched")
+    with open(patched_init_rc, "w") as f:
+        f.write(init_rc_content)
+    inject("0644", "system/etc/init/hw/init.rc", patched_init_rc)
+
+    # Inject static symlinks into cpio
+    subprocess.run([magiskboot, "cpio", rec_cpio, "ln tmp cache"], cwd=fox_dir, stdout=subprocess.DEVNULL)
+    subprocess.run([magiskboot, "cpio", rec_cpio, "ln /system/bin/toolbox sbin/getprop"], cwd=fox_dir, stdout=subprocess.DEVNULL)
+    subprocess.run([magiskboot, "cpio", rec_cpio, "ln /system/bin/toolbox bin/getprop"], cwd=fox_dir, stdout=subprocess.DEVNULL)
 
     # Injected root rc files
     inject("0755", "init.recovery.mt6993.rc", mtk_rc)
@@ -315,10 +355,12 @@ on property:sys.usb.config=none && property:sys.usb.configfs=1
     # Injected etc configs
     inject("0644", "system/etc/ld.config.txt", ld_config)
     inject("0644", "system/etc/init/vtsthp.rc", vtsthp_rc)
-    fstab_src = os.path.join(dt_dir, "recovery.fstab")
+    fstab_src = os.path.join(dt_dir, "recovery", "root", "system", "etc", "recovery.fstab")
     flags_src = os.path.join(dt_dir, "recovery", "root", "system", "etc", "twrp.flags")
     inject("0644", "system/etc/recovery.fstab", fstab_src)
     inject("0644", "system/etc/twrp.flags", flags_src)
+    inject("0644", "etc/recovery.fstab", fstab_src)
+    inject("0644", "etc/twrp.flags", flags_src)
 
     # Injected bin executables
     inject("0755", "system/bin/vtsthp", patched_vtsthp)
