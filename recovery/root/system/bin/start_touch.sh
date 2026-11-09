@@ -1,10 +1,20 @@
 #!/system/bin/sh
 
 setup_mounts() {
-    mkdir -p /vendor/bin /vendor/lib64 /vendor/firmware
-    mount -o bind /system/bin /vendor/bin 2>/dev/null
-    mount -o bind /system/lib64 /vendor/lib64 2>/dev/null
-    mount -o bind /system/vendor/firmware /vendor/firmware 2>/dev/null
+    echo -n /system/vendor/firmware > /sys/module/firmware_class/parameters/path 2>/dev/null
+    mkdir -p /vendor
+    if [ ! -e /vendor/lib64 ]; then
+        toybox ln -sf /system/lib64 /vendor/lib64 2>/dev/null
+    fi
+    if [ ! -e /vendor/firmware ]; then
+        toybox ln -sf /system/vendor/firmware /vendor/firmware 2>/dev/null
+    fi
+    # Magisk staging support when /data is encrypted
+    mkdir -p /tmp/cache /tmp/data_adb /tmp/data_adb/magisk 2>/dev/null
+    rm -f /cache 2>/dev/null
+    toybox ln -sf /tmp /cache 2>/dev/null
+    toybox ln -sf /system/bin/getprop /sbin/getprop 2>/dev/null
+    toybox ln -sf /system/bin/getprop /bin/getprop 2>/dev/null
 }
 
 # Initial wait for TWRP partition manager to finish unlinking /vendor
@@ -27,18 +37,15 @@ chmod 0666 /dev/input/event* 2>/dev/null
 # Ensure backlight is on
 echo 6000 > /sys/class/leds/lcd-backlight/brightness 2>/dev/null
 
-# Restart vtsthp now that /vendor/firmware is properly mounted
+# Restart vtsthp now that /vendor/firmware is properly setup
 killall vtsthp 2>/dev/null
 start vtsthpServiceRecovery0 2>/dev/null
 
 # Continuous supervisor loop (runs in foreground of daemon service, NO oneshot)
 while true; do
     sleep 2
-    if [ ! -f /vendor/firmware/touch_firmwares_recovery.bin ]; then
+    if [ ! -e /vendor/firmware ]; then
         setup_mounts
-        killall vtsthp 2>/dev/null
-        echo 1 > /sys/class/vts/vivo_ts/status/force_normal 2>/dev/null
-        start vtsthpServiceRecovery0 2>/dev/null
     fi
     if ! pidof vtsthp >/dev/null 2>&1; then
         echo 1 > /sys/class/vts/vivo_ts/status/force_normal 2>/dev/null

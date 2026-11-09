@@ -28,16 +28,30 @@ def main():
     else:
         work_dir = os.path.join(tempfile.gettempdir(), "repack_workspace")
 
-    # Detect fox_base
+    # Detect fox_base across common Android build environments
     fox_base = args.fox_base
     if not fox_base:
-        candidates = [
+        candidates = []
+        product_out = os.environ.get("ANDROID_PRODUCT_OUT")
+        if product_out:
+            candidates.append(os.path.join(product_out, "vendor_boot.img"))
+        
+        # Check standard relative output in AOSP / OrangeFox source tree (device/<vendor>/<model>)
+        tree_out = os.path.abspath(os.path.join(dt_dir, "..", "..", "..", "out", "target", "product", "PD2502", "vendor_boot.img"))
+        candidates.append(tree_out)
+        
+        # Check current working directory
+        candidates.append(os.path.join(os.getcwd(), "vendor_boot.img"))
+
+        # Common known local & CI locations
+        candidates.extend([
             os.path.expanduser("~/OrangeFox/out/target/product/PD2502/vendor_boot.img"),
             os.path.expanduser("~/OrangeFox-vivo-x300pro-PD2502/vendor_boot.img"),
             os.path.join(dt_dir, "prebuilt", "vendor_boot.img"),
             os.path.join(dt_dir, "vendor_boot.img"),
             os.path.join(script_dir, "vendor_boot.img"),
-        ]
+        ])
+
         for c in candidates:
             if os.path.exists(c):
                 fox_base = c
@@ -47,19 +61,34 @@ def main():
         print(f"ERROR: Base OrangeFox vendor_boot.img not found! Please specify via --fox-base <path>")
         sys.exit(1)
 
-    # Detect output
+    # Detect output destination
     out_img = args.output
     if not out_img:
-        if os.path.isdir(user_home) and os.access(user_home, os.W_OK):
+        base_dir = os.path.dirname(os.path.abspath(fox_base))
+        if os.path.isdir(base_dir) and os.access(base_dir, os.W_OK):
+            out_img = os.path.join(base_dir, "OrangeFox-vendor_boot-PD2502.img")
+        elif os.path.isdir(user_home) and os.access(user_home, os.W_OK):
             out_img = os.path.join(user_home, "OrangeFox-vendor_boot-PD2502.img")
         else:
             out_img = os.path.join(os.getcwd(), "OrangeFox-vendor_boot-PD2502.img")
 
+    # Locate magiskboot binary (prebuilt in device tree, host build output, or system PATH)
     magiskboot = os.path.join(dt_dir, "prebuilt", "magiskboot")
-    if not os.path.exists(magiskboot):
-        print(f"ERROR: magiskboot not found at {magiskboot}")
-        sys.exit(1)
-    os.chmod(magiskboot, 0o755)
+    if not (os.path.exists(magiskboot) and os.access(magiskboot, os.X_OK)):
+        if os.path.exists(magiskboot):
+            try:
+                os.chmod(magiskboot, 0o755)
+            except OSError:
+                pass
+        if not (os.path.exists(magiskboot) and os.access(magiskboot, os.X_OK)):
+            host_mb = os.path.abspath(os.path.join(dt_dir, "..", "..", "..", "out", "host", "linux-x86", "bin", "magiskboot"))
+            if os.path.exists(host_mb) and os.access(host_mb, os.X_OK):
+                magiskboot = host_mb
+            elif shutil.which("magiskboot"):
+                magiskboot = shutil.which("magiskboot")
+            else:
+                print(f"ERROR: magiskboot binary not found or not executable at {magiskboot}")
+                sys.exit(1)
 
     base_template_xz = os.path.join(dt_dir, "prebuilt", "vendor_boot_base.img.xz")
     if not os.path.exists(base_template_xz):
@@ -67,8 +96,8 @@ def main():
         sys.exit(1)
 
     if os.path.exists(work_dir):
-        shutil.rmtree(work_dir)
-    os.makedirs(work_dir)
+        shutil.rmtree(work_dir, ignore_errors=True)
+    os.makedirs(work_dir, exist_ok=True)
 
     print(f"--- Assembling Perfect OrangeFox Recovery for vivo X300 Pro ---")
     print(f"Device Tree:    {dt_dir}")
@@ -368,7 +397,13 @@ on property:sys.usb.config=sideload && property:sys.usb.configfs=1
     inject("0644", "system/etc/ld.config.txt", ld_config)
     inject("0644", "system/etc/init/vtsthp.rc", vtsthp_rc)
     fstab_src = os.path.join(dt_dir, "recovery", "root", "system", "etc", "recovery.fstab")
+    if not os.path.exists(fstab_src):
+        fstab_src = os.path.join(dt_dir, "recovery.fstab")
     flags_src = os.path.join(dt_dir, "recovery", "root", "system", "etc", "twrp.flags")
+    if not os.path.exists(flags_src):
+        flags_src = os.path.join(dt_dir, "recovery", "root", "etc", "twrp.flags")
+    if not os.path.exists(flags_src):
+        flags_src = os.path.join(dt_dir, "twrp.flags")
     inject("0644", "system/etc/recovery.fstab", fstab_src)
     inject("0644", "system/etc/twrp.flags", flags_src)
     inject("0644", "etc/recovery.fstab", fstab_src)
