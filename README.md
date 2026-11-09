@@ -1,6 +1,21 @@
 # OrangeFox / TWRP Device Tree for vivo X300 Pro (PD2502 / V2514)
 
-# WARNING MOST THINGS ARE UNTESTED AND CAN BREAK
+> [!CAUTION]
+> ### DISCLAIMER & NO RESPONSIBILITY
+> **USE AT YOUR OWN RISK.**
+> * Flashing custom recovery images can potentially brick your device, cause bootloops, corrupt partitions, or cause permanent data loss.
+> * The author(s) and maintainer(s) assume **ABSOLUTELY NO RESPONSIBILITY** for any damage, bricked devices, data loss, dead motherboards, hardware failure, thermonuclear war, or you getting fired because your alarm clock failed.
+> * You alone choose to make these modifications to your device. If you point the finger at anyone else for messing up your device, you will be laughed at.
+> * **A LOT OF FEATURES ARE CURRENTLY UNTESTED.** Only basic, core recovery functions (native OLED display, touchscreen input, ADB sideload, ZIP flashing with cache redirection, partition mounting) have been verified. Advanced functions such as decryption of stock encrypted userdata, full partition backup/restore, OTG storage, and advanced OrangeFox addons are experimental or untested.
+
+---
+
+## Known Bugs & Quirks
+1. **Screen Turn-On Delay:** When turning on the display or waking from sleep, there is a noticeable delay before the panel lights up.
+2. **Display Wake Glitch:** For approximately one second after the screen turns on, half of the display may render black while the other half renders normally, after which it instantly normalizes.
+3. **Occasional Recovery UI Restart:** The recovery UI process may occasionally soft-restart with the OrangeFox splash screen (e.g. during specific partition manager transitions), but this does not affect general usage or brick the device.
+
+---
 
 ## Device Specifications
 - **Brand:** vivo
