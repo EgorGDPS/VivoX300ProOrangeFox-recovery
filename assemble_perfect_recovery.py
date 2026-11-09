@@ -23,8 +23,8 @@ def main():
     fox_base = args.fox_base
     if not fox_base:
         candidates = [
-            "/home/egorf/OrangeFox-vivo-x300pro-PD2502/vendor_boot.img",
             os.path.expanduser("~/OrangeFox/out/target/product/PD2502/vendor_boot.img"),
+            "/home/egorf/OrangeFox-vivo-x300pro-PD2502/vendor_boot.img",
             os.path.join(dt_dir, "prebuilt", "vendor_boot.img"),
             os.path.join(dt_dir, "vendor_boot.img"),
             os.path.join(script_dir, "vendor_boot.img"),
@@ -52,30 +52,53 @@ def main():
         sys.exit(1)
     os.chmod(magiskboot, 0o755)
 
+    base_template_xz = os.path.join(dt_dir, "prebuilt", "vendor_boot_base.img.xz")
+    if not os.path.exists(base_template_xz):
+        print(f"ERROR: vendor_boot_base.img.xz not found at {base_template_xz}")
+        sys.exit(1)
+
     if os.path.exists(work_dir):
         shutil.rmtree(work_dir)
     os.makedirs(work_dir)
 
     print(f"--- Assembling Perfect OrangeFox Recovery for vivo X300 Pro ---")
-    print(f"Device Tree:  {dt_dir}")
-    print(f"Base Image:   {fox_base}")
-    print(f"Output Image: {out_img}")
-    print(f"Workspace:    {work_dir}")
+    print(f"Device Tree:    {dt_dir}")
+    print(f"Base Image:     {fox_base}")
+    print(f"Base Template:  {base_template_xz}")
+    print(f"Output Image:   {out_img}")
+    print(f"Workspace:      {work_dir}")
 
-    print("\n1. Unpacking clean recovery ramdisk from OrangeFox base...")
+    print("\n1. Decompressing 128MB AVB-signed vendor_boot template...")
+    base_template_img = os.path.join(work_dir, "vendor_boot_base.img")
+    with lzma.open(base_template_xz, "rb") as f_in, open(base_template_img, "wb") as f_out:
+        shutil.copyfileobj(f_in, f_out)
+    print(f"Base template size: {os.path.getsize(base_template_img)} bytes")
+    assert os.path.getsize(base_template_img) == 134217728, "Template must be exactly 134,217,728 bytes (128 MB)"
+
+    print("\n2. Unpacking clean recovery ramdisk from OrangeFox base...")
     fox_dir = os.path.join(work_dir, "fox")
     os.makedirs(fox_dir)
     subprocess.run([magiskboot, "unpack", fox_base], cwd=fox_dir, check=False)
     rec_cpio = os.path.join(fox_dir, "vendor_ramdisk", "recovery.cpio")
     if not os.path.exists(rec_cpio):
-        # Fallback if unpack dumped as ramdisk.cpio
         alt_cpio = os.path.join(fox_dir, "ramdisk.cpio")
         if os.path.exists(alt_cpio):
             rec_cpio = alt_cpio
     print(f"OrangeFox recovery.cpio size: {os.path.getsize(rec_cpio)} bytes")
 
-    print("\n2. Preparing patched vtsthp binary...")
-    stock_vtsthp = os.path.join(dt_dir, "recovery", "root", "vendor", "bin", "vtsthp")
+    print("\n3. Sanitizing recovery ramdisk root...")
+    # Remove physical vendor directory if created by mistake, ensure symlink vendor -> /system/vendor
+    subprocess.run([magiskboot, "cpio", rec_cpio, "rm -r vendor"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run([magiskboot, "cpio", rec_cpio, "ln /system/vendor vendor"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # Remove any broken root symlinks
+    subprocess.run([magiskboot, "cpio", rec_cpio, "rm cache"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run([magiskboot, "cpio", rec_cpio, "rm bin/getprop"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run([magiskboot, "cpio", rec_cpio, "rm sbin/getprop"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run([magiskboot, "cpio", rec_cpio, "rm etc/recovery.fstab"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run([magiskboot, "cpio", rec_cpio, "rm etc/twrp.flags"], cwd=fox_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    print("\n4. Preparing patched vtsthp binary...")
+    stock_vtsthp = os.path.join(dt_dir, "recovery", "root", "system", "vendor", "bin", "vtsthp")
     with open(stock_vtsthp, "rb") as f:
         vtsthp_data = bytearray(f.read())
 
@@ -98,26 +121,20 @@ def main():
         f.write(vtsthp_data)
     os.chmod(patched_vtsthp, 0o755)
 
-    print("\n3. Preparing start_touch.sh script...")
+    print("\n5. Preparing start_touch.sh script...")
     start_touch_sh = os.path.join(work_dir, "start_touch.sh")
     with open(start_touch_sh, "w") as f:
         f.write("""#!/system/bin/sh
 
 setup_mounts() {
-    echo -n /system/vendor/firmware > /sys/module/firmware_class/parameters/path 2>/dev/null
-    mkdir -p /vendor
-    if [ ! -e /vendor/lib64 ]; then
-        toybox ln -sf /system/lib64 /vendor/lib64 2>/dev/null
-    fi
-    if [ ! -e /vendor/firmware ]; then
-        toybox ln -sf /system/vendor/firmware /vendor/firmware 2>/dev/null
-    fi
-    # Magisk staging support when /data is encrypted
-    mkdir -p /tmp/cache /tmp/data_adb /tmp/data_adb/magisk 2>/dev/null
-    rm -f /cache 2>/dev/null
-    toybox ln -sf /tmp /cache 2>/dev/null
-    toybox ln -sf /system/bin/getprop /sbin/getprop 2>/dev/null
-    toybox ln -sf /system/bin/getprop /bin/getprop 2>/dev/null
+    mkdir -p /vendor/bin /vendor/lib64 /vendor/firmware
+    mount -o bind /system/bin /vendor/bin 2>/dev/null
+    mount -o bind /system/lib64 /vendor/lib64 2>/dev/null
+    mount -o bind /system/vendor/firmware /vendor/firmware 2>/dev/null
+    mkdir -p /tmp/cache 2>/dev/null
+    [ ! -e /cache ] && ln -sf /tmp /cache 2>/dev/null
+    [ ! -e /sbin/getprop ] && ln -sf /system/bin/toolbox /sbin/getprop 2>/dev/null
+    [ ! -e /bin/getprop ] && ln -sf /system/bin/toolbox /bin/getprop 2>/dev/null
 }
 
 # Initial wait for TWRP partition manager to finish unlinking /vendor
@@ -140,15 +157,18 @@ chmod 0666 /dev/input/event* 2>/dev/null
 # Ensure backlight is on
 echo 6000 > /sys/class/leds/lcd-backlight/brightness 2>/dev/null
 
-# Restart vtsthp now that /vendor/firmware is properly setup
+# Restart vtsthp now that /vendor/firmware is properly mounted
 killall vtsthp 2>/dev/null
 start vtsthpServiceRecovery0 2>/dev/null
 
 # Continuous supervisor loop (runs in foreground of daemon service, NO oneshot)
 while true; do
     sleep 2
-    if [ ! -e /vendor/firmware ]; then
+    if [ ! -f /vendor/firmware/touch_firmwares_recovery.bin ]; then
         setup_mounts
+        killall vtsthp 2>/dev/null
+        echo 1 > /sys/class/vts/vivo_ts/status/force_normal 2>/dev/null
+        start vtsthpServiceRecovery0 2>/dev/null
     fi
     if ! pidof vtsthp >/dev/null 2>&1; then
         echo 1 > /sys/class/vts/vivo_ts/status/force_normal 2>/dev/null
@@ -158,7 +178,7 @@ done
 """)
     os.chmod(start_touch_sh, 0o755)
 
-    print("\n4. Preparing configuration and RC files...")
+    print("\n6. Preparing configuration and RC files...")
     # ld.config.txt
     ld_config = os.path.join(work_dir, "ld.config.txt")
     with open(ld_config, "w") as f:
@@ -221,21 +241,7 @@ on property:sys.usb.config=mtp && property:sys.usb.configfs=1
     setprop sys.usb.config adb
 
 on property:sys.usb.config=none && property:sys.usb.configfs=1
-    setprop sys.usb.state none
-
-on property:sys.usb.config=adb && property:sys.usb.configfs=1
-    write /config/usb_gadget/g1/idProduct 0x${ro.recovery.usb.adb.pid}
-    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
-    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
-    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
-    setprop sys.usb.state adb
-
-on property:sys.usb.config=sideload && property:sys.usb.configfs=1
-    write /config/usb_gadget/g1/idProduct 0x${ro.recovery.usb.adb.pid}
-    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
-    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
-    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
-    setprop sys.usb.state sideload
+    setprop sys.usb.config adb
 
 on late-init
     start mtk_storageproxyd
@@ -248,8 +254,6 @@ on fs && property:ro.debuggable=0
 
 on boot
     exec u:r:update_engine:s0 root root -- /system/bin/mtk_plpath_utils
-    symlink /tmp /cache
-    symlink /system/bin/getprop /sbin/getprop
 """)
 
     # init.recovery.touch.rc
@@ -295,43 +299,13 @@ on property:sys.usb.config=mtp && property:sys.usb.configfs=1
     setprop sys.usb.config adb
 
 on property:sys.usb.config=none && property:sys.usb.configfs=1
-    setprop sys.usb.state none
-
-on property:sys.usb.config=adb && property:sys.usb.configfs=1
-    write /config/usb_gadget/g1/idProduct 0x${ro.recovery.usb.adb.pid}
-    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
-    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
-    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
-    setprop sys.usb.state adb
-
-on property:sys.usb.config=sideload && property:sys.usb.configfs=1
-    write /config/usb_gadget/g1/idProduct 0x${ro.recovery.usb.adb.pid}
-    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
-    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
-    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
-    setprop sys.usb.state sideload
+    setprop sys.usb.config adb
 """)
 
-    print("\n5. Injecting files into recovery.cpio...")
+    print("\n7. Injecting files into recovery.cpio...")
     def inject(mode, target_path, src_file):
         assert not target_path.startswith("vendor/"), f"Illegal path starting with vendor/: {target_path}"
         subprocess.check_call([magiskboot, "cpio", rec_cpio, f"add {mode} {target_path} {src_file}"], cwd=fox_dir, stdout=subprocess.DEVNULL)
-
-    # Patch system/etc/init/hw/init.rc to point /cache to /tmp instead of /data/cache
-    extracted_init_rc = os.path.join(work_dir, "init.rc.extracted")
-    subprocess.check_call([magiskboot, "cpio", rec_cpio, f"extract system/etc/init/hw/init.rc {extracted_init_rc}"], cwd=fox_dir, stdout=subprocess.DEVNULL)
-    with open(extracted_init_rc, "r") as f:
-        init_rc_content = f.read()
-    init_rc_content = init_rc_content.replace("symlink /data/cache /cache", "symlink /tmp /cache")
-    patched_init_rc = os.path.join(work_dir, "init.rc.patched")
-    with open(patched_init_rc, "w") as f:
-        f.write(init_rc_content)
-    inject("0644", "system/etc/init/hw/init.rc", patched_init_rc)
-
-    # Inject static symlinks into cpio
-    subprocess.run([magiskboot, "cpio", rec_cpio, "ln tmp cache"], cwd=fox_dir, stdout=subprocess.DEVNULL)
-    subprocess.run([magiskboot, "cpio", rec_cpio, "ln /system/bin/toolbox sbin/getprop"], cwd=fox_dir, stdout=subprocess.DEVNULL)
-    subprocess.run([magiskboot, "cpio", rec_cpio, "ln /system/bin/toolbox bin/getprop"], cwd=fox_dir, stdout=subprocess.DEVNULL)
 
     # Injected root rc files
     inject("0755", "init.recovery.mt6993.rc", mtk_rc)
@@ -341,12 +315,10 @@ on property:sys.usb.config=sideload && property:sys.usb.configfs=1
     # Injected etc configs
     inject("0644", "system/etc/ld.config.txt", ld_config)
     inject("0644", "system/etc/init/vtsthp.rc", vtsthp_rc)
-    fstab_src = os.path.join(dt_dir, "recovery", "root", "system", "etc", "recovery.fstab")
+    fstab_src = os.path.join(dt_dir, "recovery.fstab")
     flags_src = os.path.join(dt_dir, "recovery", "root", "system", "etc", "twrp.flags")
     inject("0644", "system/etc/recovery.fstab", fstab_src)
     inject("0644", "system/etc/twrp.flags", flags_src)
-    inject("0644", "etc/recovery.fstab", fstab_src)
-    inject("0644", "etc/twrp.flags", flags_src)
 
     # Injected bin executables
     inject("0755", "system/bin/vtsthp", patched_vtsthp)
@@ -386,12 +358,12 @@ on property:sys.usb.config=sideload && property:sys.usb.configfs=1
 
     print(f"Injection complete! New recovery.cpio size: {os.path.getsize(rec_cpio)} bytes")
 
-    print("\n6. Compressing recovery.cpio with lz4_legacy...")
+    print("\n8. Compressing recovery.cpio with lz4_legacy...")
     comp_rec = os.path.join(work_dir, "recovery.cpio.lz4")
     subprocess.check_call([magiskboot, "compress=lz4_legacy", rec_cpio, comp_rec])
     print(f"Compressed recovery.cpio size: {os.path.getsize(comp_rec)} bytes")
 
-    print("\n7. Preparing platform ramdisk from prebuilts...")
+    print("\n9. Preparing platform ramdisk from prebuilts...")
     final_dir = os.path.join(work_dir, "final")
     final_ramdisk_dir = os.path.join(final_dir, "vendor_ramdisk")
     os.makedirs(final_ramdisk_dir)
@@ -402,7 +374,7 @@ on property:sys.usb.config=sideload && property:sys.usb.configfs=1
         shutil.copyfileobj(f_in, f_out)
     print(f"Stock platform ramdisk size: {os.path.getsize(dest_platform_ramdisk)} bytes")
 
-    print("\n8. Assembling final vendor_boot directory...")
+    print("\n10. Assembling final vendor_boot components...")
     shutil.copy(comp_rec, os.path.join(final_ramdisk_dir, "recovery.cpio"))
     shutil.copy(os.path.join(dt_dir, "prebuilt", "dtb.img"), os.path.join(final_dir, "dtb"))
     shutil.copy(os.path.join(dt_dir, "prebuilt", "bootconfig"), os.path.join(final_dir, "bootconfig"))
@@ -410,16 +382,20 @@ on property:sys.usb.config=sideload && property:sys.usb.configfs=1
     with open(os.path.join(final_dir, "header"), "w") as f:
         f.write("name=\ncmdline=bootopt=64S3,32N2,64N2 product.version=PD2502F_EX_A_16.0.4.3.W20 fingerprint.abbr=16/BP2A.250605.031.A3 region_ver=W20 product.solution=MTK bootconfig\n")
 
-    print("\n9. Repacking final vendor_boot image with -n...")
+    print("\n11. Repacking final 128MB AVB-signed vendor_boot image with -n...")
     os.makedirs(os.path.dirname(os.path.abspath(out_img)), exist_ok=True)
-    subprocess.check_call([magiskboot, "repack", "-n", fox_base, out_img], cwd=final_dir)
-    print(f"Final image built: {out_img} (Size: {os.path.getsize(out_img)} bytes)")
+    subprocess.check_call([magiskboot, "repack", "-n", base_template_img, out_img], cwd=final_dir)
+    final_size = os.path.getsize(out_img)
+    print(f"Final image built: {out_img} (Size: {final_size} bytes)")
+    assert final_size == 134217728, f"Final image must be exactly 134,217,728 bytes (128 MB)! Got {final_size}"
 
-    print("\n10. Verifying generated image...")
+    print("\n12. Verifying generated image...")
     verify_dir = os.path.join(work_dir, "verify")
     os.makedirs(verify_dir)
-    subprocess.run([magiskboot, "unpack", out_img], cwd=verify_dir, check=False)
-    print("SUCCESS: Image verified cleanly!")
+    res = subprocess.run([magiskboot, "unpack", "-n", out_img], cwd=verify_dir, capture_output=True, text=True)
+    assert res.returncode == 3, f"Verification failed! Expected exitcode 3 (vendor_boot with AVB), got {res.returncode}"
+    assert "VBMETA" in res.stderr, "VBMETA section missing in repacked image!"
+    print("SUCCESS: 128MB AVB-signed OrangeFox vendor_boot image assembled and verified cleanly!")
 
 if __name__ == "__main__":
     main()

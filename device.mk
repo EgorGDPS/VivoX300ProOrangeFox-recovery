@@ -36,8 +36,3 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/recovery/root/system/lib64/libexpat.so:$(TARGET_COPY_OUT_RECOVERY)/root/system/lib64/libexpat.so \
     $(LOCAL_PATH)/recovery/root/system/etc/ld.config.txt:$(TARGET_COPY_OUT_RECOVERY)/root/system/etc/ld.config.txt
 
-# Touchscreen vendor copies for direct /vendor root access
-PRODUCT_COPY_FILES += $(call find-copy-subdir-files,*,$(LOCAL_PATH)/recovery/root/vendor/firmware,$(TARGET_COPY_OUT_RECOVERY)/root/vendor/firmware)
-PRODUCT_COPY_FILES += $(call find-copy-subdir-files,*,$(LOCAL_PATH)/recovery/root/vendor/lib64,$(TARGET_COPY_OUT_RECOVERY)/root/vendor/lib64)
-PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/recovery/root/vendor/bin/vtsthp:$(TARGET_COPY_OUT_RECOVERY)/root/vendor/bin/vtsthp

@@ -1,15 +1,5 @@
 # TWRP Flags for vivo X300 Pro (PD2502 / MT6993)
 
-# Logical Dynamic Partitions (Super)
-/system_root     erofs       /dev/block/mapper/system                     flags=display="System";backup=1;logical;slotselect
-/system_ext      erofs       /dev/block/mapper/system_ext                 flags=display="System_EXT";backup=1;logical;slotselect
-/vendor          erofs       /dev/block/mapper/vendor                     flags=display="Vendor";backup=1;logical;slotselect
-/product         erofs       /dev/block/mapper/product                    flags=display="Product";backup=1;logical;slotselect
-/odm             erofs       /dev/block/mapper/odm                        flags=display="ODM";backup=1;logical;slotselect
-/vendor_dlkm     erofs       /dev/block/mapper/vendor_dlkm                flags=display="Vendor_DLKM";backup=1;logical;slotselect
-/odm_dlkm        erofs       /dev/block/mapper/odm_dlkm                   flags=display="ODM_DLKM";backup=1;logical;slotselect
-/system_dlkm     erofs       /dev/block/mapper/system_dlkm                flags=display="System_DLKM";backup=1;logical;slotselect
-
 # Storage
 /usb_otg         vfat        /dev/block/sdd1         /dev/block/sdd       flags=display="USB-OTG";storage;wipeingui;removable
 
